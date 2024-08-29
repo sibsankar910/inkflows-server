@@ -8,7 +8,7 @@ import { validateUsername } from "../utils/validateUserName.js";
 
 const clientId = process.env.OAUTH_CLIENT_ID
 const clientSecret = process.env.OAUTH_CLIENT_SECRET
-const redirectUri = "http://localhost:4000/api/v1/user/google-login/callback"
+const redirectUri = `${process.env.CURRENT_ORIGIN}/api/v1/user/google-login/callback`
 
 const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri)
 
