@@ -91,9 +91,13 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const { accessToken, refreshToken } = await getAccessAndRefreshToken(user._id)
 
+    const expiresInDays = parseInt(process.env.LOG_COOKIE_EXPIRY, 10);
+    const expiresDate = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
     const cookieOptions = {
         httpOnly: true,
-        secure: true
+        secure: true,
+        expires: expiresDate
+
     }
     return (
         res.status(200)
@@ -159,9 +163,13 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             throw new ApiError(401, 'Refresh token is expired')
         }
 
+        const expiresInDays = parseInt(process.env.LOG_COOKIE_EXPIRY, 10);
+        const expiresDate = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
+
         const options = {
             httpOnly: true,
-            secure: true
+            secure: true,
+            expires: expiresDate
         }
 
         const { accessToken, newRefreshToken } = await getAccessAndRefreshToken(user._id)
@@ -323,6 +331,11 @@ const getPublicBlogList = asyncHandler(async (req, res) => {
             }
         },
         {
+            $sort: {
+                createdAt: -1
+            }
+        },
+        {
             $project: {
                 _id: 1,
                 creator: 1,
@@ -348,6 +361,11 @@ const getDraftBlogList = asyncHandler(async (req, res) => {
             $match: {
                 creator: new mongoose.Types.ObjectId(userId),
                 uploadStatus: "draft"
+            }
+        },
+        {
+            $sort: {
+                createdAt: -1
             }
         },
         {

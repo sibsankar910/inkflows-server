@@ -14,13 +14,16 @@ const blogSchema = new Schema({
         type: Array,
         required: true
     },
+    blogCategories: {
+        type: Array
+    },
     thumbnail: {
         type: String
     },
     tagList: {
         type: Array
     },
-    uploadStatus:{
+    uploadStatus: {
         type: String,
         default: "draft",
         required: true

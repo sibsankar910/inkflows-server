@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/api-error.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { asyncHandler } from "../utils/async-handler.js";
+import { validateUsername } from "../utils/validateUserName.js";
 
 const clientId = process.env.OAUTH_CLIENT_ID
 const clientSecret = process.env.OAUTH_CLIENT_SECRET
@@ -38,28 +39,49 @@ const registerAuthenticatedUser = asyncHandler(async (req, res) => {
     });
 
     const userinfo = userinfoResponse.data;
-    
+
     if (!userinfo) throw new ApiError(500, "Unable to get user")
 
-    const existedUser = await User.findOne({ email: userinfo?.email })
+    try {
 
-    if (!existedUser) {
-        await User.create({
-            email: userinfo.email,
-            fullName: userinfo.name,
-            userName: userinfo.email?.match(/^[^@]+/)[0],
-            authBy: "google",
-            avatar: userinfo.picture || "",
-            loginId: userinfo.id
-        })
+        const existedUser = await User.findOne({ email: userinfo?.email })
+
+        if (!existedUser) {
+            let userName = userinfo.email?.match(/^[^@]+/)[0];
+
+            for (let i = 0; i <= 100; i++) {
+                let { status, isUserValidate } = await validateUsername(userName)
+                if (isUserValidate) {
+                    break;
+                } else {
+                    userName = `${userName}${i}`
+                }
+            }
+
+
+            await User.create({
+                email: userinfo.email,
+                fullName: userinfo.name,
+                userName: userName,
+                authBy: "google",
+                avatar: userinfo.picture || "",
+                loginId: userinfo.id
+            })
+        }
+
+    } catch (error) {
+        return res.redirect(`${process.env.CORS_ORIGIN}/auth/login`)
     }
+
+    const expiresInDays = parseInt(process.env.LOG_COOKIE_EXPIRY, 10);
+    const expiresDate = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
 
     const cookieOptions = {
         httpOnly: true,
-        secure: true
+        secure: true,
+        expires: expiresDate
     }
-
-    res.status(200)
+    return res.status(200)
         .cookie('authToken', tokens?.access_token || '', cookieOptions)
         .redirect(`${process.env.CORS_ORIGIN}/auth/login?token=${tokens?.access_token}`)
 })

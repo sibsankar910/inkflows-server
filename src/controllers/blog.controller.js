@@ -132,6 +132,11 @@ const getBlogList = asyncHandler(async (req, res) => {
             }
         },
         {
+            $sort: {
+                createdAt: -1
+            }
+        },
+        {
             $project: {
                 _id: 1,
                 creator: 1,
@@ -163,6 +168,11 @@ const getUserBlogList = asyncHandler(async (req, res) => {
             $match: {
                 creator: user?._id,
                 uploadStatus: blogType
+            }
+        },
+        {
+            $sort: {
+                updatedAt: -1
             }
         },
         {
@@ -231,32 +241,45 @@ const addViews = asyncHandler(async (req, res) => {
 
     const prevViewed = await View.findOne({ postId: blogId, viewedBy: userId })
 
-    if (prevViewed) throw new ApiError(400, "User already viewed it")
-
-    await View.create({
-        postId: blogId,
-        viewedBy: userId
-    })
-
-    const viewsCounts = await View.aggregate([
-        {
-            $group: {
-                _id: "$postId",
-                viewsCount: { $sum: 1 }
+    if (prevViewed) {
+        await View.findByIdAndUpdate(prevViewed?._id,
+            {
+                $set: {
+                    repetition: prevViewed?.repetition + 1
+                }
+            },
+            {
+                new: true
             }
-        }
-    ])
+        )
+    }
+    else {
 
-    await Blog.findByIdAndUpdate(blogId,
-        {
-            $set: {
-                totalViews: viewsCounts[0]?.viewsCount
+        await View.create({
+            postId: blogId,
+            viewedBy: userId
+        })
+
+        const viewsCounts = await View.aggregate([
+            {
+                $group: {
+                    _id: "$postId",
+                    viewsCount: { $sum: 1 }
+                }
             }
-        },
-        {
-            new: true
-        }
-    )
+        ])
+
+        await Blog.findByIdAndUpdate(blogId,
+            {
+                $set: {
+                    totalViews: viewsCounts[0]?.viewsCount
+                }
+            },
+            {
+                new: true
+            }
+        )
+    }
 
     return res.status(200)
         .json(new ApiResponse(200, {}, "Views added successfully"))
@@ -368,6 +391,114 @@ const getSavedBlogList = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, savedPosts, "Saved list created successfully"))
 })
 
+// search over contents
+const getSearchResult = asyncHandler(async (req, res) => {
+    const { searchQuery } = req.query
+    const query = searchQuery.toLowerCase()
+    // Looks for blogs
+    const blogResult = await Blog.aggregate([
+        {
+            $match: {
+                $and: [
+                    {
+                        $or: [
+                            { tagList: { $elemMatch: { $regex: query, $options: 'i' } } },
+                            { blogTitle: { $regex: query, $options: 'i' } }
+                        ]
+                    },
+                    {
+                        uploadStatus: "public"
+                    }
+                ]
+            }
+        },
+        {
+            $sort: {
+                totalViews: -1
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                blogTitle: 1,
+                thumbnail: 1,
+                creator: 1,
+                totalViews: 1,
+                totalLikes: 1,
+                updatedAt: 1,
+                createdAt: 1,
+            }
+        }
+    ])
+
+    // looks for user by username
+    const userList = await User.aggregate([
+        {
+            $match: {
+                $or: [
+                    { userName: { $regex: query, $options: 'i' } },
+                    { fullName: { $regex: query, $options: 'i' } }
+                ]
+            },
+
+        },
+        {
+            $sort: {
+                followersCount: -1
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                fullName: 1,
+                userName: 1,
+                followersCount: 1,
+                avatar: 1
+            }
+        }
+    ])
+
+    const searchResult = [
+        ...userList?.map(e => { return { type: "user", content: e } }),
+        ...blogResult?.map(e => { return { type: "blog", content: e } })
+    ]
+
+    return res.status(200)
+        .json(new ApiResponse(200, searchResult, "Search result generated successfully"))
+})
+
+const getRecomSearch = asyncHandler(async (req, res) => {
+    const result = await Blog.aggregate([
+        {
+            $match: {
+                uploadStatus: "public"
+            }
+        },
+        {
+            // sorts list according to views order
+            $sort: {
+                totalViews: -1
+            }
+        },
+        {
+            // collects blog title for recommendation list
+            $group: {
+                _id: null,
+                recomList: { $push: "$blogTitle" }
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                recomList: 1
+            }
+        }
+    ])
+
+    return res.status(200)
+        .json(new ApiResponse(200, result ? result[0] : {}, "Recomlist fetched successfully"))
+})
+
 export {
     createBlog,
     uploadImageOnCloud,
@@ -384,5 +515,7 @@ export {
     getSavedBlogList,
     getSavedBlogsIdList,
     addToSaveList,
-    removeFromSaveList
+    removeFromSaveList,
+    getSearchResult,
+    getRecomSearch
 }

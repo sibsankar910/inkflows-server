@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
     addToSaveList,
     addViews,
-    createBlog, getAllTags, getBlog, getBlogList, getDraftAndPublicBlogNum, getSavedBlogList, getSavedBlogsIdList, getUserBlogList, removeFromSaveList, updateBlog, updateBlogUploadStatus, updateTagList, updateThumbnail, uploadImageOnCloud
+    createBlog, getAllTags, getBlog, getBlogList, getDraftAndPublicBlogNum, getRecomSearch, getSavedBlogList, getSavedBlogsIdList, getSearchResult, getUserBlogList, removeFromSaveList, updateBlog, updateBlogUploadStatus, updateTagList, updateThumbnail, uploadImageOnCloud
 } from "../controllers/blog.controller.js";
 import { checkLike, createLike, removeLike } from "../controllers/like.controller.js";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
@@ -40,5 +40,9 @@ router.route('/add-savelist/:blogId').post(verifyJwt, addToSaveList)
 router.route('/remove-savelist/:blogId').post(verifyJwt, removeFromSaveList)
 router.route('/savedblog-list').get(verifyJwt, getSavedBlogList)
 router.route('/savedblogId-list').get(verifyJwt, getSavedBlogsIdList)
+
+// blog search
+router.route("/search").get(getSearchResult)
+router.route("/recom-search").get(getRecomSearch);
 
 export default router;
