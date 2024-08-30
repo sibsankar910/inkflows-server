@@ -23,6 +23,10 @@ const userSchema = new Schema({
         type: String
     },
     password: {
+        type: String,
+        required: true
+    },
+    loginId: {
         type: String
     },
     authBy: {

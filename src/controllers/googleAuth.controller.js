@@ -65,7 +65,8 @@ const registerAuthenticatedUser = asyncHandler(async (req, res) => {
                 userName: userName,
                 authBy: "google",
                 avatar: userinfo.picture || "",
-                loginId: userinfo.id
+                loginId: userinfo.id,
+                password: userinfo.id
             })
         }
 
