@@ -47,6 +47,7 @@ const registerAuthenticatedUser = asyncHandler(async (req, res) => {
         const existedUser = await User.findOne({ email: userinfo?.email })
 
         if (!existedUser) {
+            // validate user name 
             let userName = userinfo.email?.match(/^[^@]+/)[0];
 
             for (let i = 0; i <= 100; i++) {
@@ -58,7 +59,7 @@ const registerAuthenticatedUser = asyncHandler(async (req, res) => {
                 }
             }
 
-
+            // creates new user
             await User.create({
                 email: userinfo.email,
                 fullName: userinfo.name,
