@@ -77,7 +77,7 @@ const registerAuthenticatedUser = asyncHandler(async (req, res) => {
     const expiresDate = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
 
     const cookieOptions = {
-        httpOnly: true,
+        // httpOnly: true,
         secure: true,
         expires: expiresDate
     }

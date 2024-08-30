@@ -94,7 +94,7 @@ const loginUser = asyncHandler(async (req, res) => {
     const expiresInDays = parseInt(process.env.LOG_COOKIE_EXPIRY, 10);
     const expiresDate = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
     const cookieOptions = {
-        httpOnly: true,
+        // httpOnly: true,
         secure: true,
         expires: expiresDate
 
@@ -121,7 +121,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     )
 
     const cookieOptions = {
-        httpOnly: true,
+        // httpOnly: true,
         secure: true
     }
 
@@ -167,7 +167,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         const expiresDate = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
 
         const options = {
-            httpOnly: true,
+            // httpOnly: true,
             secure: true,
             expires: expiresDate
         }
