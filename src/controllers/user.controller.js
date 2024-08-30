@@ -94,9 +94,11 @@ const loginUser = asyncHandler(async (req, res) => {
     const expiresInDays = parseInt(process.env.LOG_COOKIE_EXPIRY, 10);
     const expiresDate = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
     const cookieOptions = {
-        // httpOnly: true,
+        httpOnly: true,
         secure: true,
-        expires: expiresDate
+        expires: expiresDate,
+        origin: process.env.CORS_ORIGIN,
+        path: '/'
 
     }
     return (
@@ -121,8 +123,10 @@ const logoutUser = asyncHandler(async (req, res) => {
     )
 
     const cookieOptions = {
-        // httpOnly: true,
-        secure: true
+        httpOnly: true,
+        secure: true,
+        origin: process.env.CORS_ORIGIN,
+        path: '/'
     }
 
     return res.status(200)
@@ -166,17 +170,19 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         const expiresInDays = parseInt(process.env.LOG_COOKIE_EXPIRY, 10);
         const expiresDate = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
 
-        const options = {
-            // httpOnly: true,
+        const cookieOptions = {
+            httpOnly: true,
+            expires: expiresDate,
             secure: true,
-            expires: expiresDate
+            origin: process.env.CORS_ORIGIN,
+            path: '/'
         }
 
         const { accessToken, newRefreshToken } = await getAccessAndRefreshToken(user._id)
 
         return res.status(200)
-            .cookie("accessToken", accessToken, options)
-            .cookie('refreshToken', newRefreshToken, options)
+            .cookie("accessToken", accessToken, cookieOptions)
+            .cookie('refreshToken', newRefreshToken, cookieOptions)
             .json(
                 new ApiResponse(
                     200, {}, "Access token refreshed"

@@ -78,9 +78,11 @@ const registerAuthenticatedUser = asyncHandler(async (req, res) => {
     const expiresDate = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
 
     const cookieOptions = {
-        // httpOnly: true,
+        httpOnly: true,
+        expires: expiresDate,
         secure: true,
-        expires: expiresDate
+        origin: process.env.CORS_ORIGIN,
+        path: '/'
     }
     return res.status(200)
         .cookie('authToken', tokens?.access_token || '', cookieOptions)
