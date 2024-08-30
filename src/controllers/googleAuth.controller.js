@@ -81,6 +81,7 @@ const registerAuthenticatedUser = asyncHandler(async (req, res) => {
         httpOnly: true,
         expires: expiresDate,
         secure: true,
+        sameSite: 'none',
         origin: process.env.CORS_ORIGIN,
         path: '/'
     }

@@ -96,9 +96,10 @@ const loginUser = asyncHandler(async (req, res) => {
     const cookieOptions = {
         httpOnly: true,
         secure: true,
-        expires: expiresDate,
+        sameSite: 'none',
         origin: process.env.CORS_ORIGIN,
-        path: '/'
+        path: '/',
+        expires: expiresDate
 
     }
     return (
@@ -125,6 +126,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     const cookieOptions = {
         httpOnly: true,
         secure: true,
+        sameSite: 'none',
         origin: process.env.CORS_ORIGIN,
         path: '/'
     }
@@ -172,10 +174,11 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
         const cookieOptions = {
             httpOnly: true,
-            expires: expiresDate,
             secure: true,
+            sameSite: 'none',
             origin: process.env.CORS_ORIGIN,
-            path: '/'
+            path: '/',
+            expires: expiresDate
         }
 
         const { accessToken, newRefreshToken } = await getAccessAndRefreshToken(user._id)
