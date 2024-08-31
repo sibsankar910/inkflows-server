@@ -262,17 +262,19 @@ const addViews = asyncHandler(async (req, res) => {
 
         const viewsCounts = await View.aggregate([
             {
-                $group: {
-                    _id: "$postId",
-                    viewsCount: { $sum: 1 }
-                }
+                $match: {
+                    postId: new mongoose.Types.ObjectId(blogId)
+                },
+            },
+            {
+                $count: "totalCount"
             }
         ])
 
         await Blog.findByIdAndUpdate(blogId,
             {
                 $set: {
-                    totalViews: viewsCounts[0]?.viewsCount
+                    totalViews: viewsCounts[0]?.totalCount || 0
                 }
             },
             {

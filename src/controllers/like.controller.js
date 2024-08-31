@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/async-handler.js"
 import { ApiError } from "../utils/api-error.js"
 import { ApiResponse } from "../utils/api-response.js"
 import { Blog } from "../models/blog.model.js";
+import mongoose from "mongoose";
 
 const createLike = asyncHandler(async (req, res) => {
     const { blogId } = req.body
@@ -21,17 +22,19 @@ const createLike = asyncHandler(async (req, res) => {
 
     const likeCounts = await Like.aggregate([
         {
-            $group: {
-                _id: '$postId',
-                likeCount: { $sum: 1 }
-            }
+            $match: {
+                postId: new mongoose.Types.ObjectId(blogId)
+            },
+        },
+        {
+            $count: "totalCount"
         }
     ])
 
     await Blog.findByIdAndUpdate(blogId,
         {
             $set: {
-                totalLikes: likeCounts[0]?.likeCount
+                totalLikes: likeCounts[0]?.totalCount || 0
             }
         },
         {
@@ -57,17 +60,19 @@ const removeLike = asyncHandler(async (req, res) => {
 
     const likeCounts = await Like.aggregate([
         {
-            $group: {
-                _id: '$postId',
-                likeCount: { $sum: 1 }
-            }
+            $match: {
+                postId: new mongoose.Types.ObjectId(blogId)
+            },
+        },
+        {
+            $count: "totalCount"
         }
     ])
 
     await Blog.findByIdAndUpdate(blogId,
         {
             $set: {
-                totalLikes: likeCounts[0]?.likeCount
+                totalLikes: likeCounts[0]?.totalCount
             }
         },
         {
