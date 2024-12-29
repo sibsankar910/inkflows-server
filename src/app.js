@@ -13,9 +13,12 @@ app.use(express.json({ limit: '16kb' }))
 app.use(express.urlencoded({ extended: true, limit: '16kb' }))
 app.use(express.static('public'))
 
+cronSchedules();
+
 // Routes
 import userRouter from "./routes/user.routes.js"
 import blogRouter from "./routes/blog.routes.js"
+import { cronSchedules } from "./cron-schedules.js"
 
 app.use('/api/v1/user', userRouter)
 app.use('/api/v1/blog', blogRouter)
