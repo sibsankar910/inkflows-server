@@ -36,19 +36,17 @@ export async function validateUsername(username) {
     }
 
     // check for useravailable or not
-    var isUserAvailable = true
+    let isUserAvailable = true
     try {
-        await axios.get('/user/get-usernamelist')
-            .then((res) => {
-                const list = res?.data?.data
-                if (list?.includes(username)) {
-                    isUserAvailable = false
-                    status = 402
-                } else {
-                    isUserAvailable = true
-                    status = 200
-                }
-            })
+        const res = await axios.get('/user/get-usernamelist')
+        const list = res.data?.data;
+        if (list?.includes(username)) {
+            isUserAvailable = false;
+            status = 402;
+        } else {
+            isUserAvailable = true;
+            status = 200;
+        }
     } catch (error) {
         console.log(error);
     }
