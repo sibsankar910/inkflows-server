@@ -7,6 +7,7 @@ import { View } from "../models/views.model.js";
 import { SavedBlog } from "../models/savedBlog.model.js";
 import mongoose from "mongoose";
 import { User } from "../models/user.model.js";
+import { Contribution } from "../models/contribution.model.js";
 
 const createBlog = asyncHandler(async (req, res) => {
     const { blogTitle, contentList, creator, thumbnail } = req.body
@@ -113,7 +114,162 @@ const updateBlogUploadStatus = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, blog, "Blog status updated"))
 })
 
+// handle blog contributors
+const createBlogContribution = asyncHandler(async (req, res) => {
+    const { contributorId, blogId } = req.body;
+    const blog = await Blog.findById(blogId);
+    if (!blog) throw new ApiError(400, "Blog not found");
+    const contributor = await User.findById(contributorId);
+    if (!contributor) throw new ApiError(400, "Contributor not found!");
+    const creator = await User.findById(blog.creator);
+
+    const preContribution = await Contribution.findOne({ blogId, userId: contributorId });
+    let contribution;
+    if (preContribution) {
+        if (preContribution.isActive) throw new ApiError(402, "Contributor already exist");
+        else if (!preContribution.isActive) {
+            preContribution.isActive = true;
+            contribution = await preContribution.save({ validateBeforeSave: false });
+        }
+    } else {
+        contribution = await Contribution.create({
+            blogId,
+            blogDetails: {
+                blogTitle: blog.blogTitle,
+                createdAt: blog.createdAt,
+                creator: {
+                    name: creator.userName,
+                    avatar: creator.avatar
+                }
+            },
+            userId: contributor._id,
+            userName: contributor.userName,
+            avatar: contributor.avatar
+        })
+    }
+
+    const contributorList = await Contribution.aggregate([
+        {
+            $match: {
+                isActive: true,
+                blogId: new mongoose.Types.ObjectId(blog?._id)
+            }
+        }
+    ]);
+
+    blog.contributors = contributorList;
+    await blog.save({ validateBeforeSave: false });
+
+    return res.status(200)
+        .json(new ApiResponse(200, contribution, "Contributor created"))
+});
+
+const setContributionResponse = asyncHandler(async (req, res) => {
+    const { contributionId, isAccepted } = req.params;
+
+    const contribution = await Contribution.findById(contributionId);
+
+    if (!contribution || contribution?.userId !== req.user._id) throw new ApiError(400, "Invalid contributor");
+
+
+    // update contribution status
+    contribution.isRespond = true;
+    contribution.isAccepted = isAccepted;
+    contribution.isActive = isAccepted;
+    await contribution.save({ validateBeforeSave: false });
+
+    const blog = await Blog.findById(contribution.blogId);
+
+    const contributorList = await Contribution.aggregate([
+        {
+            $match: {
+                isActive: true,
+                blogId: new mongoose.Types.ObjectId(blog?._id)
+            }
+        }
+    ]);
+
+    blog.contributors = contributorList;
+    await blog.save({ validateBeforeSave: false });
+
+    return res.status(200)
+        .json(new ApiResponse(200, {}, "Contribution request accepted"))
+
+})
+
+const removeContribution = asyncHandler(async (req, res) => {
+    const { contributionId } = req.params;
+    const contribution = await Contribution.findById(contributionId);
+    const blog = await Blog.findById(contribution?.blogId);
+
+    if (!contribution || !blog) throw new ApiError(400, "Inavalid blog");
+
+
+    if (contribution.userId.toString() === req.user._id.toString() || blog.creator.toString() === req.user._id.toString()) {
+        // deactive contribution
+        contribution.isActive = false;
+        await contribution.save({ validateBeforeSave: false });
+
+        const contributorList = await Contribution.aggregate([
+            {
+                $match: {
+                    isActive: true,
+                    blogId: new mongoose.Types.ObjectId(blog?._id)
+                }
+            }
+        ]);
+
+        blog.contributors = contributorList;
+        await blog.save({ validateBeforeSave: false });
+    }
+
+    else {
+        throw new ApiError(402, "The request denied!");
+    }
+
+    return res.status(200)
+        .json(new ApiResponse(200, {}, "Contribution removed"))
+
+})
+
+const getContributorList = asyncHandler(async (req, res) => {
+    const { blogId } = req.params;
+    if (!blogId || blogId==='undefined') throw new ApiError(400, "Blog id is required");
+
+    const contributorList = await Contribution.aggregate([
+        {
+            $match: {
+                blogId: new mongoose.Types.ObjectId(blogId),
+                isActive: true
+            }
+        },
+        {
+            $project: {
+                userId: 1,
+                userName: 1,
+                avatar: 1
+            }
+        }
+    ]);
+
+    return res.status(200)
+        .json(new ApiResponse(200, contributorList, "List fetched"))
+})
+
+// get blogs
 const getBlog = asyncHandler(async (req, res) => {
+    const { blogId } = req.params
+    if (!blogId) throw new ApiError(400, "Blog Id is required")
+
+    const blog = await Blog.findById(blogId)
+    if (!blog) throw new ApiError(402, "Blog does not exist")
+
+    return res.status(200)
+        .json(new ApiResponse(200, blog, "Blog fetched successfully"))
+})
+
+// get blogs
+const getUserAuthBlog = asyncHandler(async (req, res) => {
     const { blogId } = req.params
     if (!blogId) throw new ApiError(400, "Blog Id is required")
 
@@ -214,8 +370,40 @@ const getDraftAndPublicBlogNum = asyncHandler(async (req, res) => {
         }
     ])
 
+    const contriButionList = await Contribution.aggregate([
+        {
+            $match: {
+                userId: new mongoose.Types.ObjectId(userId),
+                $or: [
+                    { isAccepted: true, isActive: true },
+                    { isAccepted: false, isActive: false, isRespond: false }
+                ]
+            }
+        }
+    ]);
+
     return res.status(200)
-        .json(new ApiResponse(200, { draftBlogCount: draftBlogList?.length || 0, publicBlogCount: publicBlogList?.length || 0 }, "Blog number fetched successfully"))
+        .json(new ApiResponse(200, { draftBlogCount: draftBlogList?.length || 0, publicBlogCount: publicBlogList?.length || 0, contributionCount: contriButionList?.length || 0 }, "Blog number fetched successfully"))
+})
+
+const getContributionList = asyncHandler(async (req, res) => {
+    const { userName, userId } = req.query
+    const user = await User.findOne({ $or: [{ userName }, { _id: userId }] })
+    if (!user) throw new ApiError(400, "User not found");
+    const contriButionList = await Contribution.aggregate([
+        {
+            $match: {
+                userId: new mongoose.Types.ObjectId(user._id),
+                $or: [
+                    { isAccepted: true, isActive: true },
+                    { isAccepted: false, isActive: false, isRespond: false }
+                ]
+            }
+        }
+    ]);
+
+    return res.status(200)
+        .json(new ApiResponse(200, contriButionList, "Contribution list generated"))
 })
 
 const getAllTags = asyncHandler(async (req, res) => {
@@ -509,6 +697,7 @@ export {
     updateBlog,
     updateBlogUploadStatus,
     getBlog,
+    getUserAuthBlog,
     getBlogList,
     getUserBlogList,
     getDraftAndPublicBlogNum,
@@ -519,5 +708,10 @@ export {
     addToSaveList,
     removeFromSaveList,
     getSearchResult,
-    getRecomSearch
+    getRecomSearch,
+    createBlogContribution,
+    setContributionResponse,
+    removeContribution,
+    getContributionList,
+    getContributorList
 }

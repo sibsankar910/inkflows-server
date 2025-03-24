@@ -6,6 +6,10 @@ const blogSchema = new Schema({
         ref: "Users",
         required: true
     },
+    contributors:{
+        type: Array,
+        default: []
+    },
     blogTitle: {
         type: String,
         required: true

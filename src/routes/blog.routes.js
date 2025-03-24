@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
     addToSaveList,
     addViews,
-    createBlog, getAllTags, getBlog, getBlogList, getDraftAndPublicBlogNum, getRecomSearch, getSavedBlogList, getSavedBlogsIdList, getSearchResult, getUserBlogList, removeFromSaveList, updateBlog, updateBlogUploadStatus, updateTagList, updateThumbnail, uploadImageOnCloud
+    createBlog, createBlogContribution, getAllTags, getBlog, getBlogList, getContributionList, getContributorList, getDraftAndPublicBlogNum, getRecomSearch, getSavedBlogList, getSavedBlogsIdList, getSearchResult, getUserAuthBlog, getUserBlogList, removeContribution, removeFromSaveList, setContributionResponse, updateBlog, updateBlogUploadStatus, updateTagList, updateThumbnail, uploadImageOnCloud
 } from "../controllers/blog.controller.js";
 import { checkLike, createLike, removeLike } from "../controllers/like.controller.js";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
@@ -20,12 +20,19 @@ router.route('/update-tnail').patch(verifyJwt, verifyBlogCreator, updateThumbnai
 router.route('/update-blog').patch(verifyJwt, verifyBlogCreator, updateBlog)
 router.route('/upload-status').patch(verifyJwt, verifyBlogCreator, updateBlogUploadStatus)
 
+router.route('/add-contributor').post(verifyJwt, createBlogContribution)
+router.route('/contributor-response').patch(verifyJwt, setContributionResponse)
+router.route('/remove-contribution/:contributionId').patch(verifyJwt, removeContribution);
+
 router.route('/get-blog/:blogId').get(getBlog)
+router.route('/get-auth-blog/:blogId').get(verifyJwt, verifyBlogCreator, getUserAuthBlog)
 router.route('/get-bloglist').get(getBlogList)
 router.route('/get-taglist').get(getAllTags)
 
 router.route('/user-bloglist').get(getUserBlogList)
 router.route('/get-blognumber/:userId').get(getDraftAndPublicBlogNum)
+router.route('/get-contribution-list').get(verifyJwt, getContributionList);
+router.route('/contributor-list/:blogId').get(verifyJwt, getContributorList);
 
 // Views routes
 router.route('/add-views').post(verifyJwt, addViews)

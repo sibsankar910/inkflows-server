@@ -24,7 +24,7 @@ function containsForbiddenWords(username) {
 }
 
 export async function validateUsername(username) {
-    const regex = /^[a-zA-Z0-9_-]{3,20}$/;
+    const regex = /^[a-zA-Z0-9._-]{3,20}$/;
     let isNameUseable = true, status = 200
 
     if (!regex.test(username) || containsForbiddenWords(username)) {
