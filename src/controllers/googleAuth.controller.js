@@ -54,7 +54,7 @@ const registerAuthenticatedUser = asyncHandler(async (req, res) => {
                 let { status, isUserValidate } = await validateUsername(userName)
                 if (isUserValidate) {
                     break;
-                } else {
+                } else if (isUserValidate != null) {
                     userName = `${userName}${i}`
                 }
             }
